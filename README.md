@@ -87,73 +87,66 @@ python -m streamlit run app.py
 The application will launch at:
 👉 http://localhost:8501
 
-## 🖼️** Usage Instructions and Prompt Engineering**
-Usage Instructions -:
+## 🖼️ Usage Instructions and Prompt Engineering
 
-->Enter your description inside the Prompt field.
+### **Usage Instructions**
+- Enter your description inside the **Prompt** field.  
+- *(Optional)* Add text in the **Negative Prompt** to exclude unwanted elements.  
+- Choose a **Style Guidance** option (e.g., Artistic, Photorealistic, Cartoon).  
+- Click **Generate Image** to produce the output.
 
-(Optional) Add text in Negative Prompt to exclude elements.
+---
 
-->Choose a Style Guidance (e.g., Artistic).
+### **Prompt Engineering Tips**
+Improve the quality of generated images by focusing on:
 
-->Click Generate Image.
+- **Detail:**  
+  Use descriptive nouns and adjectives.  
+  *Example:* `"vintage, neon-lit motorcycle"` instead of `"a bike"`  
 
-**Prompt Engineering Tips**
+- **Art Styles:**  
+  Add stylistic elements such as `"oil painting"`, `"cyberpunk"`, `"cinematic lighting"`  
 
-Enhance your outputs using:
+- **Style Guidance Options:**  
+  - **Photorealistic:** *a hyper-realistic photograph of...*  
+  - **Artistic:** *a hyper-detailed digital painting of...*  
+  - **Cartoon:** *a cell-shaded cartoon illustration of...*
 
-Detail: "vintage, neon-lit motorcycle" instead of "a bike"
+---
 
-Art Styles: "oil painting", "cyberpunk", "cinematic lighting"
+## 🔒 Ethical AI Use and Data Persistence
 
-**Style Guidance Options:**
+### **Content Filtering**
+The `check_content_filter()` function blocks prompts containing:
+- Violence  
+- Explicit content  
+- Hate speech  
 
-Photorealistic: a hyper-realistic photograph of...
+This ensures safe, ethical, and compliant AI usage.
 
-Artistic: a hyper-detailed digital painting of...
+---
 
-Cartoon: a cell-shaded cartoon illustration of...
+### **Watermarking & Metadata**
+- All images are watermarked with: **"AI Generated - Talrn Task"**  
+- A `.json` metadata file is generated for each image, containing:
+  - Prompt  
+  - Negative prompt  
+  - Parameter settings  
+  - Timestamp  
 
-## 🔒** Ethical AI Use and Data Persistence**
-**Content Filtering**
+All generated assets (PNG + JSON) are saved in the **`/generated_images/`** directory.
 
-check_content_filter() blocks prompts containing:
+---
 
-Violence
+## 📄 License
+This project was developed as part of the **Talrn ML Internship Assessment** and is free to review and reproduce for evaluation purposes.
 
-Explicit content
+---
 
-Hate speech
-
-Ensures responsible & compliant use.
-
-Watermarking & Metadata
-
-All images include a watermark: "AI Generated - Talrn Task"
-
-A .json metadata file is saved with:
-
-Prompt
-
-Negative prompt
-
-Settings
-
-Timestamp
-
-All files are saved in /generated_images/.
-
-
-📄 License
-
-This project was developed as part of the Talrn ML Internship Assessment and is free to review and reproduce for evaluation purposes.
-
-⭐ Acknowledgments
-
+## ⭐ Acknowledgments
 Special thanks to:
+- **Talrn.com** for the assignment  
+- **Hugging Face** for the `diffusers` library  
+- **Stability AI** for the SDXL model  
 
-Talrn.com for the assignment
-
-Hugging Face for the diffusers ecosystem
-
-Stability AI for SDXL
+---
