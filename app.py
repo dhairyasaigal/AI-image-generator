@@ -65,7 +65,7 @@ def save_image_with_metadata(image: Image.Image, prompt: str, negative_prompt: s
     # Generate timestamp
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     
-    # Create folder structure
+    # Create folder structure (IMPORTANT: In Colab, this will be relative to your project folder)
     output_dir = "generated_images"
     os.makedirs(output_dir, exist_ok=True)
     
@@ -90,16 +90,13 @@ def save_image_with_metadata(image: Image.Image, prompt: str, negative_prompt: s
     overlay = Image.new('RGBA', watermarked_image.size, (255, 255, 255, 0))
     draw = ImageDraw.Draw(overlay)
     
-    # Try to use a default font, fallback to basic if not available
+    # Try to use a default font, fallback to basic if not available (Colab will typically use default)
     try:
-        # Try to use a system font
-        font = ImageFont.truetype("arial.ttf", 20)
+        # A general system font often available in Linux/Colab environments
+        font = ImageFont.truetype("DejaVuSans.ttf", 20)
     except:
-        try:
-            font = ImageFont.truetype("C:/Windows/Fonts/arial.ttf", 20)
-        except:
-            # Fallback to default font
-            font = ImageFont.load_default()
+        # Fallback to default font
+        font = ImageFont.load_default()
     
     watermark_text = "AI Generated - Talrn Task"
     
@@ -153,30 +150,30 @@ def save_image_with_metadata(image: Image.Image, prompt: str, negative_prompt: s
 @st.cache_resource
 def load_model():
     """
-    Load the Stable Diffusion XL model with caching.
-    Downloads the model on first run.
+    Load the Stable Diffusion XL model with caching and VRAM optimizations.
     """
     # Determine device
     device = "cuda" if torch.cuda.is_available() else "cpu"
     
-    if device == "cuda":
-        # Load with FP16 optimization for CUDA
-        pipeline = StableDiffusionXLPipeline.from_pretrained(
-            MODEL_ID,
-            torch_dtype=torch.float16,
-            variant="fp16",
-            use_safetensors=True
-        )
-        pipeline = pipeline.to(device)
-    else:
-        # Standard model for CPU
-        pipeline = StableDiffusionXLPipeline.from_pretrained(
-            MODEL_ID,
-            use_safetensors=True
-        )
-        pipeline = pipeline.to(device)
+    # Load pipeline with common configuration
+    pipeline = StableDiffusionXLPipeline.from_pretrained(
+        MODEL_ID,
+        # Use FP16 for speed and VRAM efficiency on CUDA, otherwise default (float32)
+        torch_dtype=torch.float16 if device == "cuda" else torch.float32, 
+        variant="fp16" if device == "cuda" else None,
+        use_safetensors=True
+    )
     
-    return pipeline
+    if device == "cuda":
+        # CRITICAL FIX: Use CPU offloading for VRAM efficiency 
+        # This is essential for running SDXL on Colab's default GPU (T4)
+        pipeline.enable_model_cpu_offload() 
+        # Note: No need for pipeline.to(device) when using offload
+    else:
+        # For CPU fallback, move to CPU explicitly for predictable behavior (already default, but good practice)
+        pipeline.to(device)
+        
+    return pipeline, device
 
 
 def generate_image(pipeline, prompt, negative_prompt, style, num_images):
@@ -270,18 +267,18 @@ if generate_button:
         if is_blocked:
             st.error(f"Content filter blocked: The prompt contains inappropriate content related to '{blocked_keyword}'. Please modify your prompt and try again.")
             st.stop()
-        
+            
         try:
             # Start timing
             start_time = time.time()
             
             # Load model (cached, downloads on first run)
+            # load_model now returns both pipeline and device
             with st.spinner("Loading model... This may take a while on first run."):
-                pipeline = load_model()
-                device = "cuda" if torch.cuda.is_available() else "cpu"
+                pipeline, device = load_model()
             
             # Generate images
-            with st.spinner("Generating image(s)... Please wait."):
+            with st.spinner(f"Generating image(s) on {device.upper()}... Please wait."):
                 images = generate_image(pipeline, prompt, negative_prompt, style_guidance, num_images)
             
             # Calculate generation time
@@ -297,13 +294,13 @@ if generate_button:
             
             # Display success message with time
             st.success(f"Successfully generated {len(images)} image(s)!")
-            st.info(f"⏱️ Total generation time: {generation_time:.2f} seconds")
+            st.info(f"⏱️ Total generation time: {generation_time:.2f} seconds | Device: {device.upper()}")
             
             # Display images in columns with download buttons
             cols = st.columns(min(num_images, 2))  # Max 2 columns
             for idx, image in enumerate(images):
                 with cols[idx % 2]:
-                    st.image(image, caption=f"Generated Image {idx + 1}", use_container_width=True)
+                    st.image(image, caption=f"Generated Image {idx + 1} ({device.upper()})", use_container_width=True)
                     
                     # Download buttons
                     col1, col2 = st.columns(2)
@@ -326,7 +323,8 @@ if generate_button:
                     with col2:
                         # Convert image to JPEG bytes
                         jpeg_buffer = io.BytesIO()
-                        image.save(jpeg_buffer, format="JPEG", quality=95)
+                        # Use the original (non-watermarked) image for the JPEG export
+                        images[idx].save(jpeg_buffer, format="JPEG", quality=95) 
                         jpeg_bytes = jpeg_buffer.getvalue()
                         
                         jpeg_filename = os.path.basename(saved_paths[idx][0]).replace('.png', '.jpg')
@@ -337,9 +335,13 @@ if generate_button:
                             mime="image/jpeg",
                             use_container_width=True
                         )
-        
+            
         except Exception as e:
-            st.error(f"An error occurred during image generation: {str(e)}")
+            # Check for a common OOM error to give a better hint
+            if "CUDA out of memory" in str(e):
+                st.error("GPU Memory Error: The generation failed due to insufficient VRAM. Try generating fewer images (1 image) or restarting the Colab runtime.")
+            else:
+                st.error(f"An error occurred during image generation: {str(e)}")
             st.info("If this is your first run, the model is being downloaded. Please wait and try again.")
     else:
         st.warning("Please enter a prompt to generate an image.")
@@ -347,4 +349,3 @@ if generate_button:
 # Placeholder area for displaying images (when not generating)
 if not generate_button:
     st.info("Configure your settings in the sidebar and click 'Generate Image(s)' to create your images.")
-
