@@ -137,6 +137,12 @@ This ensures safe, ethical, and compliant AI usage.
 All generated assets (PNG + JSON) are saved in the **`/generated_images/`** directory.
 
 ---
+## 🎥 Demo Video
+
+Watch the full demo of the project here:  
+👉 **YouTube Link:** https://youtu.be/LMu8JGIUVkc
+
+---
 
 ## 📄 License
 This project was developed as part of the **Talrn ML Internship Assessment** and is free to review and reproduce for evaluation purposes.
